@@ -12,7 +12,7 @@ st.title("🤖 Adil AI Chatbot")
 st.caption("Your personal smart assistant — powered by OpenAI")
 
 # Load API key securely
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = OpenAI(api_key=st.secrets["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"])
 
 # Initialize chat history
 if "chat" not in st.session_state:
