@@ -1,65 +1,45 @@
 import streamlit as st
-import os
-from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load .env file
-load_dotenv()
+st.set_page_config(page_title="Adil AI", page_icon="🤖", layout="centered")
 
-# Get API Key
-api_key = os.getenv("OPENAI_API_KEY")
+# Sidebar
+st.sidebar.title("⚙️ Settings")
+st.sidebar.info("Built by Adil using OpenAI API")
 
-# Error handle if key missing
-if not api_key:
-    st.error("❌ OPENAI_API_KEY not found. Add it in .env or Streamlit Secrets.")
-    st.stop()
+# Title
+st.title("🤖 Adil AI Chatbot")
+st.caption("Your personal smart assistant — powered by OpenAI")
 
-# Initialize client
-client = OpenAI(api_key=api_key)
+# Load API key securely
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Streamlit page setup
-st.set_page_config(page_title="AdilGPT", layout="wide")
-st.title("🤖 AdilGPT – Online ChatGPT Clone")
-
-# Chat memory
+# Initialize chat history
 if "chat" not in st.session_state:
-    st.session_state.chat = []
+    st.session_state.chat = [
+        {"role": "system", "content": "You are Adil AI, a friendly and intelligent assistant created by Adil."}
+    ]
 
-# Sidebar – AI Personality
-with st.sidebar:
-    st.header("⚙️ Settings")
-    system_prompt = st.text_area(
-        "AI Personality (System Message):",
-        "You are AdilGPT, a confident, street-smart and friendly AI who replies in Roman Urdu with attitude."
-    )
+# Display previous messages
+for msg in st.session_state.chat[1:]:
+    if msg["role"] == "user":
+        st.chat_message("user").markdown(msg["content"])
+    else:
+        st.chat_message("assistant").markdown(msg["content"])
 
-# Display previous chat
-for msg in st.session_state.chat:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# User input
+if prompt := st.chat_input("Type your message..."):
+    st.session_state.chat.append({"role": "user", "content": prompt})
+    st.chat_message("user").markdown(prompt)
 
-# Input box
-user_input = st.chat_input("Kuch puchhna hai?")
-
-if user_input:
-    # Show user message
-    st.session_state.chat.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
-
-    # AI Response
+    # Generate response
     with st.chat_message("assistant"):
-        msg_box = st.empty()
-        msg_box.markdown("⏳ Thinking...")
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=st.session_state.chat
+        )
+        reply = response.choices[0].message.content
+        st.markdown(reply)
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "system", "content": system_prompt}] + st.session_state.chat
-            )
-            ai_reply = response.choices[0].message.content
-            msg_box.markdown(ai_reply)
-            st.session_state.chat.append({"role": "assistant", "content": ai_reply})
-
-        except Exception as e:
-            msg_box.error(f"⚠️ Error: {str(e)}")
+    # Save assistant reply
+    st.session_state.chat.append({"role": "assistant", "content": reply})
